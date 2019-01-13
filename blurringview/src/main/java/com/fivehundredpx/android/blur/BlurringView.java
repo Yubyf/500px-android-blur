@@ -62,16 +62,28 @@ public class BlurringView extends View {
                     mBitmapToBlur.eraseColor(Color.TRANSPARENT);
                 }
 
-                mBlurredView.draw(mBlurringCanvas);
+                if (!mIsBitmapInput) {
+                    mBlurredView.draw(mBlurringCanvas);
+                } else if (mInputBitmap != null) {
+                    Bitmap bitmap = Bitmap.createScaledBitmap(mInputBitmap, mBlurredViewWidth, mBlurredViewHeight,
+                            false);
+                    mBlurringCanvas.drawBitmap(bitmap, 0, 0, null);
+                }
+                mBlurringCanvas.drawColor(mOverlayColor);
+
                 blur();
+
+                Bitmap bitmap = advancedProcessBlurredBitmap(
+                        resizeBlurredBitmap(mBlurredBitmap, mDownsampleFactor));
 
                 canvas.save();
                 canvas.translate(mBlurredView.getX() - getX(), mBlurredView.getY() - getY());
-                canvas.scale(mDownsampleFactor, mDownsampleFactor);
-                canvas.drawBitmap(mBlurredBitmap, 0, 0, null);
+//                canvas.scale(mDownsampleFactor, mDownsampleFactor);
+                canvas.drawBitmap(bitmap, 0, 0, null);
                 canvas.restore();
+            } else {
+                canvas.drawColor(mOverlayColor);
             }
-            canvas.drawColor(mOverlayColor);
         }
     }
 
@@ -149,6 +161,30 @@ public class BlurringView extends View {
         mBlurOutput.copyTo(mBlurredBitmap);
     }
 
+    /**
+     * Set input bitmap from camera preview.
+     *
+     * @param bitmap Bitmap of camera preview.
+     */
+    public void setInputBitmap(Bitmap bitmap) {
+        mInputBitmap = bitmap;
+        mIsBitmapInput = true;
+    }
+
+    private Bitmap resizeBlurredBitmap(Bitmap bitmap, int scale) {
+        if (scale == 1) {
+            return bitmap;
+        }
+        return Bitmap.createScaledBitmap(bitmap,
+                bitmap.getWidth() * scale,
+                bitmap.getHeight() * scale,
+                false);
+    }
+
+    protected Bitmap advancedProcessBlurredBitmap(Bitmap bitmap) {
+        return bitmap;
+    }
+
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
@@ -170,4 +206,6 @@ public class BlurringView extends View {
     private ScriptIntrinsicBlur mBlurScript;
     private Allocation mBlurInput, mBlurOutput;
 
+    private boolean mIsBitmapInput = false;
+    private Bitmap mInputBitmap;
 }
